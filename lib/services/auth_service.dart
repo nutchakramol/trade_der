@@ -18,7 +18,7 @@ class AuthService {
     );
     await _db.collection('users').doc(cred.user!.uid).set({
       'email': email,
-      'bankBalance': 10000.0,
+      'bankBalance': 100.0,
       'createdAt': DateTime.now().toIso8601String(),
     });
     return cred;

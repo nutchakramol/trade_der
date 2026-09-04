@@ -7,6 +7,7 @@ import '../trade/spot_trade_screen.dart';
 import '../trade/futures_trade_screen.dart';
 import '../trade/live_trade_screen.dart';
 import '../leaderboard/leaderboard_screen.dart';
+import 'bank_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -62,6 +63,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 },
               ),
             ],
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () => Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => const BankScreen())),
+              child: const Text('Bank Account (Top Up)'),
+            ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadCoins,

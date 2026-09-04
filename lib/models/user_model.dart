@@ -4,6 +4,7 @@ class UserModel {
   final double bankBalance;
   final DateTime createdAt;
   final String? pendingPenaltyTradeId;
+  final String? topUpPinHash;
 
   UserModel({
     required this.uid,
@@ -11,6 +12,7 @@ class UserModel {
     required this.bankBalance,
     required this.createdAt,
     this.pendingPenaltyTradeId,
+    this.topUpPinHash,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
@@ -20,6 +22,7 @@ class UserModel {
       bankBalance: (map['bankBalance'] as num).toDouble(),
       createdAt: DateTime.parse(map['createdAt'] as String),
       pendingPenaltyTradeId: map['pendingPenaltyTradeId'] as String?,
+      topUpPinHash: map['topUpPinHash'] as String?,
     );
   }
 
@@ -29,6 +32,7 @@ class UserModel {
       'bankBalance': bankBalance,
       'createdAt': createdAt.toIso8601String(),
       'pendingPenaltyTradeId': pendingPenaltyTradeId,
+      'topUpPinHash': topUpPinHash,
     };
   }
 }

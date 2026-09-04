@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 
 class BankService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -20,5 +22,27 @@ class BankService {
       final current = (snapshot.data()?['bankBalance'] as num?)?.toDouble() ?? 0.0;
       transaction.update(ref, {'bankBalance': current + delta});
     });
+  }
+
+  String _hashPin(String pin) {
+    return sha256.convert(utf8.encode(pin)).toString();
+  }
+
+  Future<bool> hasTopUpPin(String uid) async {
+    final doc = await _db.collection('users').doc(uid).get();
+    return doc.data()?['topUpPinHash'] != null;
+  }
+
+  Future<void> setTopUpPin(String uid, String pin) async {
+    await _db.collection('users').doc(uid).update({
+      'topUpPinHash': _hashPin(pin),
+    });
+  }
+
+  Future<bool> verifyTopUpPin(String uid, String pin) async {
+    final doc = await _db.collection('users').doc(uid).get();
+    final storedHash = doc.data()?['topUpPinHash'] as String?;
+    if (storedHash == null) return false;
+    return storedHash == _hashPin(pin);
   }
 }
