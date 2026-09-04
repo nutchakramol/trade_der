@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/signup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +21,9 @@ class MyApp extends StatelessWidget {
       title: 'Crypto Trade Sim',
       theme: ThemeData(colorSchemeSeed: Colors.deepPurple, useMaterial3: true),
       debugShowCheckedModeBanner: false,
-      home: const LoginScreen(),
+      // Testing signup flow right now — switch to LoginScreen() when done
+      home: const SignupScreen(),
+      // home: const LoginScreen(),
     );
   }
 }
