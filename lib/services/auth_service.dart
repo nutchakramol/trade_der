@@ -1,37 +1,37 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// OWNER: Person A
-/// Person B calls these methods from login_screen.dart / signup_screen.dart
-/// and listens to authStateChanges to decide whether to show login or dashboard.
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
-
   User? get currentUser => _auth.currentUser;
 
-  /// Creates a Firebase Auth user AND a matching Firestore user doc
-  /// (bankBalance: 10000.0 starting default) via FirestoreService.
-  /// TODO(Person A): implement, throw readable exceptions on failure
-  /// (email-already-in-use, weak-password, etc.) so Person B can show
-  /// a SnackBar with e.toString() or a mapped message.
   Future<UserCredential> signUp({
     required String email,
     required String password,
   }) async {
-    throw UnimplementedError('TODO: Person A');
+    final cred = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    await _db.collection('users').doc(cred.user!.uid).set({
+      'email': email,
+      'bankBalance': 10000.0,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+    return cred;
   }
 
-  /// TODO(Person A): implement sign in
   Future<UserCredential> signIn({
     required String email,
     required String password,
   }) async {
-    throw UnimplementedError('TODO: Person A');
+    return _auth.signInWithEmailAndPassword(email: email, password: password);
   }
 
-  /// TODO(Person A): implement sign out
   Future<void> signOut() async {
-    throw UnimplementedError('TODO: Person A');
+    await _auth.signOut();
   }
 }
