@@ -1,10 +1,9 @@
 import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/penalty_model.dart';
 
 class StorageService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Future<PenaltyModel> uploadPenaltyPhoto({
@@ -13,24 +12,21 @@ class StorageService {
     required String tradeId,
     required double lossAmount,
   }) async {
-    // Upload the file
-    final ref = _storage.ref().child('penalty_photos/$uid/$tradeId.jpg');
-    await ref.putFile(photo);
-    final photoUrl = await ref.getDownloadURL();
+    final dir = await getApplicationDocumentsDirectory();
+    final localPath = '${dir.path}/penalty_$tradeId.jpg';
+    final savedFile = await photo.copy(localPath);
 
-    // Write the penalty doc
     final docRef = _db.collection('penalties').doc();
     final penalty = PenaltyModel(
       penaltyId: docRef.id,
       uid: uid,
       tradeId: tradeId,
-      photoUrl: photoUrl,
+      photoUrl: savedFile.path,
       lossAmount: lossAmount,
       createdAt: DateTime.now(),
     );
     await docRef.set(penalty.toMap());
 
-    // Clear the lock so the user can use the app again
     await _db.collection('users').doc(uid).update({
       'pendingPenaltyTradeId': null,
     });
