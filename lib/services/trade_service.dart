@@ -100,6 +100,100 @@ class TradeService {
     return updatedTrade;
   }
 
+    Future<TradeModel> openFuturesTrade({
+    required String uid,
+    required String coinId,
+    required TradeDirection direction,
+    required double amount,
+    required int leverage,
+    required Duration duration,
+  }) async {
+    final balance = await _bankService.getBalance(uid);
+    if (balance < amount) {
+      throw Exception('Insufficient balance');
+    }
+
+    final coins = await _priceService.getTopCoins(perPage: 250);
+    final coin = coins.firstWhere(
+      (c) => c.id == coinId,
+      orElse: () => throw Exception('Coin not found: $coinId'),
+    );
+
+    await _bankService.adjustBalance(uid, -amount);
+
+    final docRef = _db.collection('trades').doc();
+    final now = DateTime.now();
+    final trade = TradeModel(
+      tradeId: docRef.id,
+      uid: uid,
+      coinId: coinId,
+      type: TradeType.futures,
+      direction: direction,
+      entryPrice: coin.currentPrice,
+      amount: amount,
+      leverage: leverage,
+      openedAt: now,
+      expiresAt: now.add(duration),
+      status: TradeStatus.open,
+    );
+
+    await docRef.set(trade.toMap());
+    return trade;
+  }
+
+  Future<TradeModel> resolveFuturesIfExpired({required String tradeId}) async {
+    final doc = await _db.collection('trades').doc(tradeId).get();
+    if (!doc.exists) throw Exception('Trade not found');
+
+    final trade = TradeModel.fromMap(doc.data()!, tradeId);
+
+    if (trade.status != TradeStatus.open) {
+      return trade; // already resolved, nothing to do
+    }
+    if (trade.expiresAt == null || DateTime.now().isBefore(trade.expiresAt!)) {
+      return trade; // not expired yet, still open
+    }
+
+    final coins = await _priceService.getTopCoins(perPage: 250);
+    final coin = coins.firstWhere(
+      (c) => c.id == trade.coinId,
+      orElse: () => throw Exception('Coin not found: ${trade.coinId}'),
+    );
+    final closePrice = coin.currentPrice;
+
+    final priceDiff = closePrice - trade.entryPrice;
+    final percentChange = priceDiff / trade.entryPrice;
+    final directionMultiplier = trade.direction == TradeDirection.long ? 1 : -1;
+    final leverageMultiplier = trade.leverage ?? 1;
+    final pnl = trade.amount * percentChange * directionMultiplier * leverageMultiplier;
+
+    final isWin = pnl >= 0;
+    final newStatus = isWin ? TradeStatus.closedWin : TradeStatus.closedLoss;
+
+    if (isWin) {
+      await _bankService.adjustBalance(trade.uid, trade.amount + pnl);
+    }
+
+    final updatedTrade = TradeModel(
+      tradeId: trade.tradeId,
+      uid: trade.uid,
+      coinId: trade.coinId,
+      type: trade.type,
+      direction: trade.direction,
+      entryPrice: trade.entryPrice,
+      amount: trade.amount,
+      leverage: trade.leverage,
+      openedAt: trade.openedAt,
+      expiresAt: trade.expiresAt,
+      status: newStatus,
+      closePrice: closePrice,
+      pnl: pnl,
+    );
+
+    await _db.collection('trades').doc(tradeId).update(updatedTrade.toMap());
+    return updatedTrade;
+  }
+  
   Stream<List<TradeModel>> watchUserTrades(String uid) {
     return _db
         .collection('trades')
