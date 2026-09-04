@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
-import '../../services/bank_service.dart';
+import '../../services/trade_service.dart';
+import '../../models/trade_model.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -17,20 +18,22 @@ class LoginScreen extends StatelessWidget {
               final uid = cred.user!.uid;
               print("Signed in as UID: $uid");
 
-              final balance = await BankService().getBalance(uid);
-              print("Current balance: \$${balance.toStringAsFixed(2)}");
+              final trade = await TradeService().openSpotTrade(
+                uid: uid,
+                coinId: "bitcoin",
+                direction: TradeDirection.long,
+                amount: 100.0,
+              );
+              print("Opened trade: ${trade.tradeId}, entry price: ${trade.entryPrice}");
 
-              await BankService().adjustBalance(uid, -500.0);
-              print("Deducted \$500");
-
-              final newBalance = await BankService().getBalance(uid);
-              print("New balance: \$${newBalance.toStringAsFixed(2)}");
+              final closed = await TradeService().closeTrade(tradeId: trade.tradeId);
+              print("Closed trade: status=${closed.status}, closePrice=${closed.closePrice}, pnl=${closed.pnl}");
             } catch (e, stack) {
               print('ERROR: $e');
               print('STACK: $stack');
             }
           },
-          child: const Text('Test Bank Service'),
+          child: const Text('Test Trade Service'),
         ),
       ),
     );
