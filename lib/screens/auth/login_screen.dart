@@ -1,45 +1,58 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../../services/auth_service.dart';
-import '../../services/storage_service.dart';
+import '../home/dashboard_screen.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  String _status = '';
+  bool _loading = false;
+
+  Future<void> _signIn() async {
+    setState(() { _loading = true; _status = ''; });
+    try {
+      await AuthService().signIn(email: "test@test.com", password: "test1234");
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
+    } catch (e) {
+      setState(() => _status = 'ERROR: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: const Text('Login (Test)')),
       body: Center(
-        child: ElevatedButton(
-          onPressed: () async {
-            try {
-              final cred = await AuthService()
-                  .signIn(email: "test@test.com", password: "test1234");
-              final uid = cred.user!.uid;
-              print("Signed in as UID: $uid");
-
-              final picker = ImagePicker();
-              final pickedFile = await picker.pickImage(source: ImageSource.camera);
-              if (pickedFile == null) {
-                print("No image picked");
-                return;
-              }
-              final file = File(pickedFile.path);
-
-              final penalty = await StorageService().uploadPenaltyPhoto(
-                photo: file,
-                uid: uid,
-                tradeId: "test-trade-id-123",
-                lossAmount: 50.0,
-              );
-              print("Uploaded! Photo URL: ${penalty.photoUrl}");
-            } catch (e, stack) {
-              print('ERROR: $e');
-              print('STACK: $stack');
-            }
-          },
-          child: const Text('Test Storage Upload'),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Crypto Trade Sim',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              _loading
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                      onPressed: _signIn,
+                      child: const Text('Sign In (test@test.com)'),
+                    ),
+              const SizedBox(height: 16),
+              if (_status.isNotEmpty)
+                Text(_status, style: const TextStyle(color: Colors.red)),
+            ],
+          ),
         ),
       ),
     );
