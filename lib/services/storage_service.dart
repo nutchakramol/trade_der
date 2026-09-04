@@ -1,29 +1,50 @@
 import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/penalty_model.dart';
 
-/// OWNER: Person A
-/// Person B's camera_capture_screen.dart calls uploadPenaltyPhoto() right
-/// after image_picker returns a File, then navigates to the leaderboard.
-/// Person B's leaderboard_screen.dart calls watchAllPenalties() to render
-/// the "wall of shame".
 class StorageService {
-  /// Uploads to Firebase Storage at penalty_photos/{uid}/{tradeId}.jpg,
-  /// then writes a PenaltyModel doc to Firestore "penalties" collection
-  /// with the resulting download URL. Returns the created PenaltyModel.
-  /// TODO(Person A): implement
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
   Future<PenaltyModel> uploadPenaltyPhoto({
     required File photo,
     required String uid,
     required String tradeId,
     required double lossAmount,
   }) async {
-    throw UnimplementedError('TODO: Person A');
+    // Upload the file
+    final ref = _storage.ref().child('penalty_photos/$uid/$tradeId.jpg');
+    await ref.putFile(photo);
+    final photoUrl = await ref.getDownloadURL();
+
+    // Write the penalty doc
+    final docRef = _db.collection('penalties').doc();
+    final penalty = PenaltyModel(
+      penaltyId: docRef.id,
+      uid: uid,
+      tradeId: tradeId,
+      photoUrl: photoUrl,
+      lossAmount: lossAmount,
+      createdAt: DateTime.now(),
+    );
+    await docRef.set(penalty.toMap());
+
+    // Clear the lock so the user can use the app again
+    await _db.collection('users').doc(uid).update({
+      'pendingPenaltyTradeId': null,
+    });
+
+    return penalty;
   }
 
-  /// Live stream of ALL users' penalties, newest first, for the shared
-  /// leaderboard/wall-of-shame screen.
-  /// TODO(Person A): implement via Firestore snapshots(), orderBy createdAt desc
   Stream<List<PenaltyModel>> watchAllPenalties() {
-    throw UnimplementedError('TODO: Person A');
+    return _db
+        .collection('penalties')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => PenaltyModel.fromMap(doc.data(), doc.id))
+            .toList());
   }
 }

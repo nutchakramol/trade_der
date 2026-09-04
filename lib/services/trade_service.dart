@@ -14,23 +14,19 @@ class TradeService {
     required TradeDirection direction,
     required double amount,
   }) async {
-    // Check balance first
     final balance = await _bankService.getBalance(uid);
     if (balance < amount) {
       throw Exception('Insufficient balance');
     }
 
-    // Get current price as entry price
     final coins = await _priceService.getTopCoins(perPage: 250);
     final coin = coins.firstWhere(
       (c) => c.id == coinId,
       orElse: () => throw Exception('Coin not found: $coinId'),
     );
 
-    // Deduct the staked amount immediately
     await _bankService.adjustBalance(uid, -amount);
 
-    // Create the trade doc
     final docRef = _db.collection('trades').doc();
     final trade = TradeModel(
       tradeId: docRef.id,
@@ -57,7 +53,6 @@ class TradeService {
       throw Exception('Trade already closed');
     }
 
-    // Get current price
     final coins = await _priceService.getTopCoins(perPage: 250);
     final coin = coins.firstWhere(
       (c) => c.id == trade.coinId,
@@ -65,7 +60,6 @@ class TradeService {
     );
     final closePrice = coin.currentPrice;
 
-    // Calculate pnl based on direction
     final priceDiff = closePrice - trade.entryPrice;
     final percentChange = priceDiff / trade.entryPrice;
     final directionMultiplier = trade.direction == TradeDirection.long ? 1 : -1;
@@ -74,10 +68,13 @@ class TradeService {
     final isWin = pnl >= 0;
     final newStatus = isWin ? TradeStatus.closedWin : TradeStatus.closedLoss;
 
-    // If win, return staked amount + profit. If loss, amount was already
-    // deducted at open and nothing is returned.
     if (isWin) {
       await _bankService.adjustBalance(trade.uid, trade.amount + pnl);
+    } else {
+      // Lock the user into the penalty flow until they upload a photo.
+      await _db.collection('users').doc(trade.uid).update({
+        'pendingPenaltyTradeId': trade.tradeId,
+      });
     }
 
     final updatedTrade = TradeModel(
@@ -100,7 +97,7 @@ class TradeService {
     return updatedTrade;
   }
 
-    Future<TradeModel> openFuturesTrade({
+  Future<TradeModel> openFuturesTrade({
     required String uid,
     required String coinId,
     required TradeDirection direction,
@@ -148,10 +145,10 @@ class TradeService {
     final trade = TradeModel.fromMap(doc.data()!, tradeId);
 
     if (trade.status != TradeStatus.open) {
-      return trade; // already resolved, nothing to do
+      return trade;
     }
     if (trade.expiresAt == null || DateTime.now().isBefore(trade.expiresAt!)) {
-      return trade; // not expired yet, still open
+      return trade;
     }
 
     final coins = await _priceService.getTopCoins(perPage: 250);
@@ -172,6 +169,10 @@ class TradeService {
 
     if (isWin) {
       await _bankService.adjustBalance(trade.uid, trade.amount + pnl);
+    } else {
+      await _db.collection('users').doc(trade.uid).update({
+        'pendingPenaltyTradeId': trade.tradeId,
+      });
     }
 
     final updatedTrade = TradeModel(
@@ -193,7 +194,7 @@ class TradeService {
     await _db.collection('trades').doc(tradeId).update(updatedTrade.toMap());
     return updatedTrade;
   }
-  
+
   Stream<List<TradeModel>> watchUserTrades(String uid) {
     return _db
         .collection('trades')

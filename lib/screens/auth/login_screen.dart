@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../services/auth_service.dart';
-import '../../services/trade_service.dart';
-import '../../models/trade_model.dart';
+import '../../services/storage_service.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -18,28 +19,27 @@ class LoginScreen extends StatelessWidget {
               final uid = cred.user!.uid;
               print("Signed in as UID: $uid");
 
-              final trade = await TradeService().openFuturesTrade(
+              final picker = ImagePicker();
+              final pickedFile = await picker.pickImage(source: ImageSource.camera);
+              if (pickedFile == null) {
+                print("No image picked");
+                return;
+              }
+              final file = File(pickedFile.path);
+
+              final penalty = await StorageService().uploadPenaltyPhoto(
+                photo: file,
                 uid: uid,
-                coinId: "bitcoin",
-                direction: TradeDirection.long,
-                amount: 100.0,
-                leverage: 5,
-                duration: const Duration(seconds: 10),
+                tradeId: "test-trade-id-123",
+                lossAmount: 50.0,
               );
-              print("Opened futures trade: ${trade.tradeId}, entry: ${trade.entryPrice}, expires: ${trade.expiresAt}");
-
-              print("Waiting 12 seconds for it to expire...");
-              await Future.delayed(const Duration(seconds: 12));
-
-              final resolved = await TradeService()
-                  .resolveFuturesIfExpired(tradeId: trade.tradeId);
-              print("Resolved: status=${resolved.status}, closePrice=${resolved.closePrice}, pnl=${resolved.pnl}");
+              print("Uploaded! Photo URL: ${penalty.photoUrl}");
             } catch (e, stack) {
               print('ERROR: $e');
               print('STACK: $stack');
             }
           },
-          child: const Text('Test Futures Trade'),
+          child: const Text('Test Storage Upload'),
         ),
       ),
     );
