@@ -1,24 +1,24 @@
-/// OWNER: Person A
-/// Person B's dashboard screen streams getBalance(uid) to show the
-/// "check your bank status before you trade" balance card, and the
-/// trade screens can call it to validate enough funds before enabling
-/// the "Trade" button.
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class BankService {
-  /// TODO(Person A): implement via Firestore doc stream on users/{uid}.bankBalance
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
   Stream<double> watchBalance(String uid) {
-    throw UnimplementedError('TODO: Person A');
+    return _db.collection('users').doc(uid).snapshots().map(
+        (doc) => (doc.data()?['bankBalance'] as num?)?.toDouble() ?? 0.0);
   }
 
-  /// TODO(Person A): implement one-off read
   Future<double> getBalance(String uid) async {
-    throw UnimplementedError('TODO: Person A');
+    final doc = await _db.collection('users').doc(uid).get();
+    return (doc.data()?['bankBalance'] as num?)?.toDouble() ?? 0.0;
   }
 
-  /// Used internally by TradeService - Person B should not need to call
-  /// this directly, but it's exposed in case a screen needs a manual adjust.
-  /// TODO(Person A): implement as a Firestore transaction (avoid race
-  /// conditions if user opens two trades quickly).
   Future<void> adjustBalance(String uid, double delta) async {
-    throw UnimplementedError('TODO: Person A');
+    final ref = _db.collection('users').doc(uid);
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(ref);
+      final current = (snapshot.data()?['bankBalance'] as num?)?.toDouble() ?? 0.0;
+      transaction.update(ref, {'bankBalance': current + delta});
+    });
   }
 }

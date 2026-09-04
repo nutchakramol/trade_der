@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
+import '../../services/bank_service.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -8,24 +9,28 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Crypto Trade Sim',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () {
-                AuthService()
-                    .signIn(email: "test@test.com", password: "test1234")
-                    .then((cred) => print("Sign in worked! UID: ${cred.user?.uid}"))
-                    .catchError((e) => print("Error: $e"));
-              },
-              child: const Text('Test Sign In'),
-            ),
-          ],
+        child: ElevatedButton(
+          onPressed: () async {
+            try {
+              final cred = await AuthService()
+                  .signIn(email: "test@test.com", password: "test1234");
+              final uid = cred.user!.uid;
+              print("Signed in as UID: $uid");
+
+              final balance = await BankService().getBalance(uid);
+              print("Current balance: \$${balance.toStringAsFixed(2)}");
+
+              await BankService().adjustBalance(uid, -500.0);
+              print("Deducted \$500");
+
+              final newBalance = await BankService().getBalance(uid);
+              print("New balance: \$${newBalance.toStringAsFixed(2)}");
+            } catch (e, stack) {
+              print('ERROR: $e');
+              print('STACK: $stack');
+            }
+          },
+          child: const Text('Test Bank Service'),
         ),
       ),
     );

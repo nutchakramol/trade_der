@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(colorSchemeSeed: Colors.deepPurple, useMaterial3: true),
       debugShowCheckedModeBanner: false,
       // Testing signup flow right now — switch to LoginScreen() when done
-      home: const SignupScreen(),
+      home: const LoginScreen(),
       // home: const LoginScreen(),
     );
   }
