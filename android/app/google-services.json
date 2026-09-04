@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "906326345309",
+    "project_id": "crypto-trade-sim-8c120",
+    "storage_bucket": "crypto-trade-sim-8c120.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:906326345309:android:98efb2bd00380405ba2fb4",
+        "android_client_info": {
+          "package_name": "com.example.trad_der"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAdqPYegibeNMAi_0Yo-Rq7HUfIaZscNnA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
