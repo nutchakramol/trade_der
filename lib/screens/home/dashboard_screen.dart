@@ -3,8 +3,6 @@ import '../../services/auth_service.dart';
 import '../../services/bank_service.dart';
 import '../../services/price_service.dart';
 import '../../models/crypto_model.dart';
-import '../trade/spot_trade_screen.dart';
-import '../trade/futures_trade_screen.dart';
 import '../trade/live_trade_screen.dart';
 import '../leaderboard/leaderboard_screen.dart';
 import 'bank_screen.dart';
@@ -88,37 +86,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     subtitle: Text('\$${coin.currentPrice}'),
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => SpotTradeScreen(coinId: coin.id)),
+                      MaterialPageRoute(builder: (_) => LiveTradeScreen(coinId: coin.id)),
                     ),
                   );
                 },
               ),
             ),
             const Divider(),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const SpotTradeScreen(coinId: 'bitcoin'))),
-                    child: const Text('Test Spot Trade'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const FuturesTradeScreen(coinId: 'bitcoin'))),
-                    child: const Text('Test Futures'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const LiveTradeScreen(coinId: 'bitcoin'))),
-              child: const Text('Live Trading (Chart)'),
+              child: const Text('Live Trading (Spot + Futures)'),
             ),
             const SizedBox(height: 8),
             ElevatedButton(

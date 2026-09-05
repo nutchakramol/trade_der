@@ -45,4 +45,19 @@ class BankService {
     if (storedHash == null) return false;
     return storedHash == _hashPin(pin);
   }
+
+    /// Atomically checks balance and deducts in one transaction, so two
+  /// trades opened at nearly the same time can't both pass a stale check
+  /// and push the balance negative.
+  Future<void> deductIfSufficient(String uid, double amount) async {
+    final ref = _db.collection('users').doc(uid);
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(ref);
+      final current = (snapshot.data()?['bankBalance'] as num?)?.toDouble() ?? 0.0;
+      if (current < amount) {
+        throw Exception('Insufficient balance');
+      }
+      transaction.update(ref, {'bankBalance': current - amount});
+    });
+  }
 }
