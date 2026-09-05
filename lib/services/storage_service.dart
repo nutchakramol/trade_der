@@ -39,8 +39,10 @@ class StorageService {
         .collection('penalties')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => PenaltyModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => PenaltyModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
   }
 }
