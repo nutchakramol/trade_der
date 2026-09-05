@@ -242,50 +242,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  const LiveTradeScreen(coinId: 'bitcoin'),
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: C8.lime,
-                            foregroundColor: C8.bg,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: const Text(
-                            'Spot Trade',
-                            style: TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _wideDark(
-                        'Futures',
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                const LiveTradeScreen(coinId: 'bitcoin'),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
                 _fullAction(
                   Icons.show_chart_rounded,
                   'Open Live Trading Chart',
@@ -510,24 +466,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _wideDark(String label, VoidCallback tap) {
-    return SizedBox(
-      height: 50,
-      child: OutlinedButton(
-        onPressed: tap,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          backgroundColor: C8.card,
-          side: const BorderSide(color: C8.border),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
       ),
     );
   }
