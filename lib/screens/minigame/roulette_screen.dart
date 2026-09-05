@@ -21,7 +21,7 @@ class _RouletteScreenState extends State<RouletteScreen>
   late final AnimationController _controller;
   late Animation<double> _rotation;
 
-  final List<double> _multipliers = const [0, 0.5, 1, 1.5, 2, 3, 5, 10];
+  final List<double> _multipliers = const [-1.5, -0.5, 0, 0.5, 1, 1.5, 2, 3, 5, 10];
 
   bool _spinning = false;
   String _status = 'Enter a wager before spinning.';
@@ -101,21 +101,40 @@ class _RouletteScreenState extends State<RouletteScreen>
       return;
     }
 
-    if (payout > 0) {
+    // The wager has already been deducted above.
+    //
+    // Positive multiplier:
+    //   payout = wager * multiplier and is credited back.
+    //
+    // Zero:
+    //   no payout, so the wager is lost.
+    //
+    // Negative multiplier:
+    //   an additional penalty is deducted.
+    //   Example: \$100 at -0.5x = \$100 wager lost + \$50 extra penalty.
+    //            \$100 at -1.5x = \$100 wager lost + \$150 extra penalty.
+    if (multiplier > 0) {
+      await BankService().adjustBalance(uid, payout);
+    } else if (multiplier < 0) {
       await BankService().adjustBalance(uid, payout);
     }
 
     if (!mounted) return;
 
+    final net = multiplier > 0 ? payout - wager : payout - wager;
+
     setState(() {
       _spinning = false;
       _lastMultiplier = multiplier;
       _lastPayout = payout;
-      final net = payout - wager;
+
       if (net > 0) {
         _status = 'You won +\$${net.toStringAsFixed(2)} net profit!';
       } else if (net == 0) {
         _status = 'Break-even spin. Your wager was returned.';
+      } else if (multiplier < 0) {
+        _status =
+            'Penalty ${multiplier}x! You lost \$${(-net).toStringAsFixed(2)} total.';
       } else {
         _status = 'You lost \$${(-net).toStringAsFixed(2)} this spin.';
       }
@@ -154,7 +173,7 @@ class _RouletteScreenState extends State<RouletteScreen>
                         const Text(
                           'Multiply Your Funds',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: Color.fromARGB(255, 0, 0, 0),
                             fontSize: 28,
                             fontWeight: FontWeight.w800,
                           ),
@@ -214,7 +233,7 @@ class _RouletteScreenState extends State<RouletteScreen>
                           Text(
                             '\$${balance.toStringAsFixed(2)}',
                             style: TextStyle(
-                              color: balance < 0 ? C8.red : Colors.white,
+                              color: balance < 0 ? C8.red : const Color.fromARGB(255, 0, 0, 0),
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
                             ),
@@ -309,7 +328,7 @@ class _RouletteScreenState extends State<RouletteScreen>
                         backgroundColor: C8.card,
                         side: const BorderSide(color: C8.border),
                         labelStyle: const TextStyle(
-                          color: Colors.white,
+                          color: Color.fromARGB(255, 0, 0, 0),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -337,9 +356,11 @@ class _RouletteScreenState extends State<RouletteScreen>
                         ),
                       ),
                       Text(
-                        'Payout: \$${_lastPayout!.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        _lastMultiplier! < 0
+                            ? 'Extra penalty: \$${(-_lastPayout!).toStringAsFixed(2)}'
+                            : 'Payout: \$${_lastPayout!.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: _lastMultiplier! < 0 ? C8.red : C8.ink,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -408,8 +429,8 @@ class _RoulettePainter extends CustomPainter {
       final painter = TextPainter(
         text: TextSpan(
           text: '${values[i]}x',
-          style: const TextStyle(
-            color: C8.lime,
+          style: TextStyle(
+            color: values[i] < 0 ? C8.red : C8.ink,
             fontSize: 15,
             fontWeight: FontWeight.w800,
           ),

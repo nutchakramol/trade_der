@@ -92,7 +92,7 @@ class _SignupScreenState extends State<SignupScreen> {
               const Text(
                 'Join Crypto888',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Color.fromARGB(255, 0, 0, 0),
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
                 ),
@@ -108,7 +108,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 cursorColor: C8.lime,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: Color.fromARGB(255, 5, 3, 3)),
                 decoration: c8Input(
                   hint: 'you@example.com',
                   icon: Icons.mail_outline_rounded,
@@ -121,7 +121,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 controller: _passwordController,
                 obscureText: _hidePassword,
                 cursorColor: C8.lime,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
                 decoration: c8Input(
                   hint: 'At least 6 characters',
                   icon: Icons.lock_outline_rounded,
@@ -143,7 +143,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 controller: _confirmController,
                 obscureText: _hideConfirm,
                 cursorColor: C8.lime,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
                 decoration: c8Input(
                   hint: 'Re-enter password',
                   icon: Icons.verified_user_outlined,

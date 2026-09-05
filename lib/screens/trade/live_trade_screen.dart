@@ -200,7 +200,7 @@ class _LiveTradeScreenState extends State<LiveTradeScreen> {
               const Text(
                 'Open Positions',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Color.fromARGB(255, 0, 0, 0),
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
@@ -243,7 +243,7 @@ class _LiveTradeScreenState extends State<LiveTradeScreen> {
                       ? 'Loading price…'
                       : '\$${_currentPrice!.toStringAsFixed(2)}',
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Color.fromARGB(255, 0, 0, 0),
                     fontSize: 34,
                     fontWeight: FontWeight.w800,
                   ),
@@ -394,7 +394,7 @@ class _LiveTradeScreenState extends State<LiveTradeScreen> {
                 decimal: true,
               ),
               style: const TextStyle(
-                color: Colors.white,
+                color: Color.fromARGB(255, 0, 0, 0),
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
@@ -546,7 +546,7 @@ class _LiveTradeScreenState extends State<LiveTradeScreen> {
                         Text(
                           '${trade.direction.name.toUpperCase()} · \$${trade.amount.toStringAsFixed(2)}',
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: Colors.black,
                             fontWeight: FontWeight.w800,
                           ),
                         ),

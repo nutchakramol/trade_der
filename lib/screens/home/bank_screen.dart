@@ -83,7 +83,7 @@ class _BankScreenState extends State<BankScreen> {
                       : Icons.visibility_outlined,
                   color: C8.muted,
                 ),
-              ),
+              ), label: '', limeIcon: false,
             ),
           ),
           actions: [
@@ -136,7 +136,7 @@ class _BankScreenState extends State<BankScreen> {
                     ),
                     child: const Icon(
                       Icons.settings_outlined,
-                      color: Colors.white,
+                      color: Color.fromARGB(255, 0, 0, 0),
                       size: 21,
                     ),
                   ),
@@ -144,13 +144,13 @@ class _BankScreenState extends State<BankScreen> {
               ),
               const SizedBox(height: 28),
               if (uid == null)
-                const C8Status(text: 'Not signed in.')
+                const C8Status(text: 'Not signed in.', success: false,)
               else
                 StreamBuilder<double>(
                   stream: BankService().watchBalance(uid),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
-                      return const C8Status(text: 'Unable to load balance.');
+                      return const C8Status(text: 'Unable to load balance.', success: false,);
                     }
                     final balance = snapshot.data ?? 0;
                     return Container(
@@ -179,7 +179,7 @@ class _BankScreenState extends State<BankScreen> {
                               Text(
                                 '\$${balance.toStringAsFixed(2)}',
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: Color.fromARGB(255, 0, 0, 0),
                                   fontSize: 40,
                                   height: 1,
                                   fontWeight: FontWeight.w800,
@@ -208,7 +208,7 @@ class _BankScreenState extends State<BankScreen> {
               const Text(
                 'Top Up',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Color.fromARGB(255, 0, 0, 0),
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
                 ),
@@ -278,7 +278,7 @@ class _BankScreenState extends State<BankScreen> {
                           Text(
                             'PIN Protected',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Color.fromARGB(255, 0, 0, 0),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -342,7 +342,7 @@ class _BankScreenState extends State<BankScreen> {
             const Text(
               'Enter Top-Up Amount',
               style: TextStyle(
-                color: Colors.white,
+                color: Color.fromARGB(255, 9, 5, 5),
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
               ),
@@ -362,6 +362,11 @@ class _BankScreenState extends State<BankScreen> {
                 hint: '0.00',
                 icon: Icons.attach_money_rounded,
                 limeIcon: true,
+                label: '',
+                suffix: IconButton(
+                  onPressed: null,
+                  icon: const SizedBox.shrink(),
+                ),
               ),
             ),
             const SizedBox(height: 20),

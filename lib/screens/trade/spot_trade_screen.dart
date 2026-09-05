@@ -177,7 +177,7 @@ class _SpotTradeScreenState extends State<SpotTradeScreen> {
                   const Text(
                     'Spot Position',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Color.fromARGB(255, 0, 0, 0),
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
                     ),
@@ -226,7 +226,7 @@ class _SpotTradeScreenState extends State<SpotTradeScreen> {
                             decimal: true,
                           ),
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: Color.fromARGB(255, 0, 0, 0),
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
                           ),
@@ -454,7 +454,7 @@ class _PriceCard extends StatelessWidget {
                   ? 'Price unavailable'
                   : '\$${price!.toStringAsFixed(2)}',
               style: const TextStyle(
-                color: Colors.white,
+                color: Color.fromARGB(255, 0, 0, 0),
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
               ),
@@ -495,7 +495,7 @@ class _AmountChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? C8.lime : Colors.white,
+            color: selected ? C8.lime : const Color.fromARGB(255, 0, 0, 0),
             fontSize: 12,
             fontWeight: FontWeight.w800,
           ),
@@ -545,7 +545,7 @@ class _SelectionButton extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: selected ? color : Colors.white,
+                color: selected ? color : const Color.fromARGB(255, 0, 0, 0),
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -671,7 +671,7 @@ class _RowMetric extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            color: valueColor ?? Colors.white,
+            color: valueColor ?? const Color.fromARGB(255, 0, 0, 0),
             fontSize: 14,
             fontWeight: FontWeight.w700,
           ),

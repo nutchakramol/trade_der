@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   String _friendlyError(Object e) {
-    final msg = e.toString(); 
+    final msg = e.toString();
     if (msg.contains('user-not-found') ||
         msg.contains('wrong-password') ||
         msg.contains('invalid-credential')) {
@@ -80,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text(
                 'Welcome Back',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Color.fromARGB(255, 17, 8, 8),
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
                 ),
@@ -104,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 cursorColor: C8.lime,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
                 decoration: c8Input(
                   hint: 'Enter email address',
                   icon: Icons.mail_outline_rounded,
@@ -125,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _passwordController,
                 obscureText: _hidePassword,
                 cursorColor: C8.lime,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: Color.fromARGB(255, 3, 1, 1)),
                 decoration: c8Input(
                   hint: 'Enter password',
                   icon: Icons.lock_outline_rounded,
@@ -230,6 +230,6 @@ class _LoginScreenState extends State<LoginScreen> {
       border: Border.all(color: C8.border),
       borderRadius: BorderRadius.circular(12),
     ),
-    child: Icon(icon, color: Colors.white, size: 24),
+    child: Icon(icon, color: const Color.fromARGB(255, 0, 0, 0), size: 24),
   );
 }

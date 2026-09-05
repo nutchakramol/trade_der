@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'screens/home/welcome_screen.dart';
+import 'widgets/crypto888_ui.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -18,9 +19,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Crypto Trade Sim',
+      title: 'Crypto888',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorSchemeSeed: Colors.deepPurple, useMaterial3: true),
+
+      // Crypto888 White / Yellow theme + SUSE Mono
+      theme: crypto888Theme(),
+
       home: const WelcomeScreen(),
     );
   }

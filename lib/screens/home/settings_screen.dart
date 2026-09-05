@@ -84,7 +84,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const Text(
                 'Set Top-Up PIN',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Color.fromARGB(255, 0, 0, 0),
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
                 ),
@@ -216,7 +216,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Text(
                 title,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: Color.fromARGB(255, 0, 0, 0),
                   fontWeight: FontWeight.w600,
                 ),
               ),

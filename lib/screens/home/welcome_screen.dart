@@ -78,7 +78,7 @@ class WelcomeScreen extends StatelessWidget {
                                 Text(
                                   'Live Network Feed',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: Color.fromARGB(255, 0, 0, 0),
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -104,7 +104,7 @@ class WelcomeScreen extends StatelessWidget {
               const Text(
                 'Crypto trading\nmade simple.',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Color.fromARGB(255, 0, 0, 0),
                   fontSize: 36,
                   height: 1.15,
                   fontWeight: FontWeight.w800,

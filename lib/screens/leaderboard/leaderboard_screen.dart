@@ -24,7 +24,7 @@ class LeaderboardScreen extends StatelessWidget {
               const Text(
                 'Latest Penalties',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Color.fromARGB(255, 24, 14, 14),
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
                 ),
@@ -68,7 +68,7 @@ class LeaderboardScreen extends StatelessWidget {
                           ],
                         ),
                       );
-                  }
+                    }
                     return ListView.separated(
                       itemCount: penalties.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 10),
@@ -103,7 +103,7 @@ class LeaderboardScreen extends StatelessWidget {
                                     Text(
                                       'Lost \$${p.lossAmount.toStringAsFixed(2)}',
                                       style: const TextStyle(
-                                        color: Colors.white,
+                                        color: Color.fromARGB(255, 0, 0, 0),
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700,
                                       ),

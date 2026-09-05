@@ -6,120 +6,278 @@ import '../services/auth_service.dart';
 import '../services/bank_service.dart';
 
 class C8 {
-  static const bg = Color(0xFF090D1A);
-  static const card = Color(0xFF141A29);
-  static const border = Color(0xFF222D3D);
-  static const lime = Color(0xFFF8FF74);
-  static const muted = Color(0xFF8A99AD);
-  static const green = Color(0xFF00F5A0);
-  static const red = Color(0xFFFF5C6C);
+  static const bg = Color.fromARGB(255, 244, 243, 243);
+  static const card = Color.fromARGB(255, 226, 220, 220);
+  static const ink = Color(0xFF111111);
+  static const border = Color(0xFFE7E9EE);
+  static const lime = Color.fromARGB(255, 120, 97, 182);
+  static const limeSoft = Color(0xFFF5FFD0);
+  static const muted = Color.fromARGB(255, 0, 0, 0);
+  static const green = Color(0xFF35C86F);
+  static const red = Color(0xFFF06A93);
+
+  static const softShadow = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x0A000000),
+      blurRadius: 24,
+      offset: Offset(0, 8),
+    ),
+  ];
 }
 
 class C8Header extends StatelessWidget {
+  const C8Header({
+    super.key,
+    required this.title,
+    this.leading,
+    this.trailing,
+    this.onBack,
+    this.action,
+  });
+
   final String title;
+
+  // New API
+  final Widget? leading;
+  final Widget? trailing;
+
+  // Backward-compatible API used by the existing screens.
   final VoidCallback? onBack;
   final Widget? action;
 
-  const C8Header({super.key, required this.title, this.onBack, this.action});
-
   @override
   Widget build(BuildContext context) {
+    final effectiveLeading = leading ??
+        (onBack == null
+            ? null
+            : IconButton(
+                onPressed: onBack,
+                tooltip: 'Back',
+                icon: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: C8.ink,
+                ),
+              ));
+
+    final effectiveTrailing = trailing ?? action;
+
     return Stack(
       children: [
-        const C8NegativeBalanceGuard(),
         Container(
-          height: 72,
+          constraints: const BoxConstraints(minHeight: 68),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: C8.border)),
+            color: C8.bg,
+            border: Border(
+              bottom: BorderSide(color: C8.border),
+            ),
           ),
           child: Row(
             children: [
               SizedBox(
-                width: 44,
-                child: onBack == null
-                    ? const SizedBox.shrink()
-                    : InkWell(
-                        onTap: onBack,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: C8.card,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: C8.border),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                      ),
+                width: 48,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: effectiveLeading,
+                ),
               ),
-              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
-                      children: [
-                        Text(
-                          'Crypto888',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 19,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: .2,
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        _C8ProBadge(),
-                      ],
+                    const Text(
+                      'Crypto888',
+                      style: TextStyle(
+                        color: C8.ink,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: C8.muted,
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 44, height: 44, child: action),
+              SizedBox(
+                width: 48,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: effectiveTrailing,
+                ),
+              ),
             ],
           ),
         ),
+        const C8NegativeBalanceGuard(),
       ],
     );
   }
 }
 
-class _C8ProBadge extends StatelessWidget {
-  const _C8ProBadge();
+InputDecoration c8Input({
+  String? label,
+  String? hint,
+
+  // New API
+  Widget? prefixIcon,
+  Widget? suffixIcon,
+
+  // Backward-compatible API.
+  IconData? icon,
+  bool limeIcon = false,
+  Widget? suffix,
+}) {
+  final effectivePrefix = prefixIcon ??
+      (icon == null
+          ? null
+          : Icon(
+              icon,
+              color: limeIcon ? C8.ink : C8.muted,
+              size: 20,
+            ));
+
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    prefixIcon: effectivePrefix,
+    suffixIcon: suffixIcon ?? suffix,
+    labelStyle: const TextStyle(
+      color: C8.muted,
+      fontWeight: FontWeight.w600,
+    ),
+    hintStyle: const TextStyle(color: C8.muted),
+    filled: true,
+    fillColor: C8.card,
+    contentPadding: const EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 16,
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: C8.border),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(
+        color: C8.ink,
+        width: 1.4,
+      ),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: C8.red),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(
+        color: C8.red,
+        width: 1.4,
+      ),
+    ),
+  );
+}
+
+class C8PrimaryButton extends StatelessWidget {
+  const C8PrimaryButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.icon,
+    this.loading = false,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final IconData? icon;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: C8.lime.withValues(alpha: .10),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: C8.lime, width: .6),
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: ElevatedButton.icon(
+        onPressed: loading ? null : onPressed,
+        icon: loading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: C8.ink,
+                ),
+              )
+            : Icon(icon ?? Icons.arrow_forward_rounded),
+        iconAlignment: IconAlignment.end,
+        label: Text(label),
       ),
-      child: const Text(
-        'PRO',
-        style: TextStyle(
-          color: C8.lime,
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
-        ),
+    );
+  }
+}
+
+class C8Status extends StatelessWidget {
+  const C8Status({
+    super.key,
+    required this.text,
+    this.success = false,
+  });
+
+  final String text;
+
+  // Backward-compatible parameter used by existing screens.
+  final bool success;
+
+  @override
+  Widget build(BuildContext context) {
+    if (text.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final accent = success ? C8.green : C8.lime;
+    final background =
+        success ? C8.green.withValues(alpha: 0.10) : C8.limeSoft;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 12,
+      ),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            success
+                ? Icons.check_circle_outline_rounded
+                : Icons.info_outline_rounded,
+            color: success ? C8.green : C8.ink,
+            size: 18,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: success ? C8.green : C8.ink,
+                fontSize: 12,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -129,21 +287,19 @@ class C8NegativeBalanceGuard extends StatefulWidget {
   const C8NegativeBalanceGuard({super.key});
 
   @override
-  State<C8NegativeBalanceGuard> createState() => _C8NegativeBalanceGuardState();
+  State<C8NegativeBalanceGuard> createState() =>
+      _C8NegativeBalanceGuardState();
 }
 
 class _C8NegativeBalanceGuardState extends State<C8NegativeBalanceGuard> {
   StreamSubscription<double>? _subscription;
   bool _dialogOpen = false;
-  bool _negativeStateAcknowledged = false;
+  bool _acknowledged = false;
 
   @override
   void initState() {
     super.initState();
-    _startListening();
-  }
 
-  void _startListening() {
     final uid = AuthService().currentUser?.uid;
     if (uid == null) return;
 
@@ -151,18 +307,17 @@ class _C8NegativeBalanceGuardState extends State<C8NegativeBalanceGuard> {
       if (!mounted) return;
 
       if (balance >= 0) {
-        _negativeStateAcknowledged = false;
+        _acknowledged = false;
         return;
       }
 
-      if (_dialogOpen || _negativeStateAcknowledged) return;
-      _negativeStateAcknowledged = true;
-      _showNegativeBalanceWarning(balance);
+      if (!_dialogOpen && !_acknowledged) {
+        _showDebtDialog(balance);
+      }
     });
   }
 
-  Future<void> _showNegativeBalanceWarning(double balance) async {
-    if (!mounted) return;
+  Future<void> _showDebtDialog(double balance) async {
     _dialogOpen = true;
 
     await showDialog<void>(
@@ -172,68 +327,52 @@ class _C8NegativeBalanceGuardState extends State<C8NegativeBalanceGuard> {
         return AlertDialog(
           backgroundColor: C8.card,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-            side: const BorderSide(color: C8.red),
+            borderRadius: BorderRadius.circular(24),
           ),
-          title: const Row(
-            children: [
-              Icon(Icons.local_police_rounded, color: C8.red, size: 34),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Police Warning',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
+          icon: Container(
+            width: 58,
+            height: 58,
+            decoration: const BoxDecoration(
+              color: C8.limeSoft,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.local_police_rounded,
+              color: C8.ink,
+              size: 30,
+            ),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: C8.red.withValues(alpha: .08),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: C8.red.withValues(alpha: .35)),
-                ),
-                child: Text(
-                  'Current balance: -\$${balance.abs().toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: C8.red,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'Your account has entered a negative balance. This indicates liquidation or debt status in the simulator. Add funds or resolve the outstanding balance before taking more risk.',
-                style: TextStyle(color: C8.muted, height: 1.45),
-              ),
-            ],
+          title: const Text(
+            'Account warning',
+            style: TextStyle(
+              color: C8.ink,
+              fontWeight: FontWeight.w800,
+            ),
           ),
+          content: Text(
+            'Your balance is \$${balance.toStringAsFixed(2)}. '
+            'The account is now in debt / liquidation status.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: C8.muted,
+              height: 1.45,
+            ),
+          ),
+          actionsAlignment: MainAxisAlignment.center,
           actions: [
-            FilledButton.icon(
+            ElevatedButton(
               onPressed: () => Navigator.pop(dialogContext),
-              icon: const Icon(Icons.warning_amber_rounded),
-              label: const Text('I Understand'),
-              style: FilledButton.styleFrom(
-                backgroundColor: C8.red,
-                foregroundColor: Colors.white,
-              ),
+              child: const Text('I understand'),
             ),
           ],
         );
       },
     );
 
-    _dialogOpen = false;
+    if (mounted) {
+      _acknowledged = true;
+      _dialogOpen = false;
+    }
   }
 
   @override
@@ -243,129 +382,101 @@ class _C8NegativeBalanceGuardState extends State<C8NegativeBalanceGuard> {
   }
 
   @override
-  Widget build(BuildContext context) => const SizedBox.shrink();
+  Widget build(BuildContext context) {
+    return const SizedBox.shrink();
+  }
 }
 
-InputDecoration c8Input({
-  required String hint,
-  IconData? icon,
-  Widget? suffix,
-  bool limeIcon = false,
-}) {
-  return InputDecoration(
-    hintText: hint,
-    hintStyle: const TextStyle(color: C8.muted, fontSize: 15),
-    prefixIcon: icon == null
-        ? null
-        : Icon(icon, size: 20, color: limeIcon ? C8.lime : C8.muted),
-    suffixIcon: suffix,
-    filled: true,
-    fillColor: C8.card,
-    counterText: '',
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: C8.border),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: C8.lime),
-    ),
-    errorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: C8.red),
-    ),
+ThemeData crypto888Theme() {
+  final scheme = ColorScheme.fromSeed(
+    seedColor: C8.lime,
+    brightness: Brightness.light,
+    primary: C8.ink,
+    surface: C8.card,
   );
-}
 
-class C8PrimaryButton extends StatelessWidget {
-  final String label;
-  final VoidCallback? onPressed;
-  final bool loading;
-  final IconData? icon;
-
-  const C8PrimaryButton({
-    super.key,
-    required this.label,
-    required this.onPressed,
-    this.loading = false,
-    this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final child = loading
-        ? const SizedBox(
-            width: 22,
-            height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2, color: C8.bg),
-          )
-        : Text(
-            label,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-          );
-
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: icon == null
-          ? ElevatedButton(
-              onPressed: loading ? null : onPressed,
-              style: _buttonStyle(),
-              child: child,
-            )
-          : ElevatedButton.icon(
-              onPressed: loading ? null : onPressed,
-              icon: Icon(icon, size: 18),
-              label: child,
-              style: _buttonStyle(),
-            ),
-    );
-  }
-
-  ButtonStyle _buttonStyle() {
-    return ElevatedButton.styleFrom(
-      backgroundColor: C8.lime,
-      foregroundColor: C8.bg,
-      disabledBackgroundColor: C8.lime.withValues(alpha: .45),
+  return ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    scaffoldBackgroundColor: C8.bg,
+    colorScheme: scheme,
+    fontFamily: 'SUSEMono',
+    textTheme: const TextTheme(
+      headlineLarge: TextStyle(
+        color: C8.ink,
+        fontWeight: FontWeight.w800,
+      ),
+      headlineMedium: TextStyle(
+        color: C8.ink,
+        fontWeight: FontWeight.w800,
+      ),
+      titleLarge: TextStyle(
+        color: C8.ink,
+        fontWeight: FontWeight.w800,
+      ),
+      titleMedium: TextStyle(
+        color: C8.ink,
+        fontWeight: FontWeight.w700,
+      ),
+      bodyLarge: TextStyle(
+        color: C8.ink,
+        fontWeight: FontWeight.w500,
+      ),
+      bodyMedium: TextStyle(
+        color: C8.ink,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: C8.lime,
+        foregroundColor: C8.ink,
+        elevation: 0,
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w800,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: C8.ink,
+        backgroundColor: C8.card,
+        side: const BorderSide(color: C8.border),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w800,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: C8.ink,
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: C8.card,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: C8.border),
+      ),
+    ),
+    cardTheme: CardThemeData(
+      color: C8.card,
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-    );
-  }
-}
-
-class C8Status extends StatelessWidget {
-  final String text;
-  final bool success;
-
-  const C8Status({super.key, required this.text, this.success = false});
-
-  @override
-  Widget build(BuildContext context) {
-    if (text.isEmpty) return const SizedBox.shrink();
-    final color = success ? C8.green : C8.red;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: .08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: .35)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: const BorderSide(color: C8.border),
       ),
-      child: Row(
-        children: [
-          Icon(
-            success ? Icons.check_circle_outline : Icons.error_outline,
-            color: color,
-            size: 20,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(text, style: TextStyle(color: color, fontSize: 13)),
-          ),
-        ],
-      ),
-    );
-  }
+    ),
+    dividerColor: C8.border,
+  );
 }
