@@ -7,9 +7,7 @@ import '../../services/price_service.dart';
 import '../../widgets/crypto888_ui.dart';
 import '../leaderboard/leaderboard_screen.dart';
 import '../minigame/roulette_screen.dart';
-import '../trade/futures_trade_screen.dart';
 import '../trade/live_trade_screen.dart';
-import '../trade/spot_trade_screen.dart';
 import 'bank_screen.dart';
 import 'settings_screen.dart';
 
@@ -254,7 +252,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (_) =>
-                                  const SpotTradeScreen(coinId: 'bitcoin'),
+                                  const LiveTradeScreen(coinId: 'bitcoin'),
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
@@ -280,7 +278,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (_) =>
-                                const FuturesTradeScreen(coinId: 'bitcoin'),
+                                const LiveTradeScreen(coinId: 'bitcoin'),
                           ),
                         ),
                       ),
@@ -412,7 +410,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return InkWell(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => SpotTradeScreen(coinId: coin.id)),
+        MaterialPageRoute(builder: (_) => LiveTradeScreen(coinId: coin.id)),
       ),
       borderRadius: BorderRadius.circular(16),
       child: Container(

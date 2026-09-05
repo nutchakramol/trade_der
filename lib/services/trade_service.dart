@@ -14,18 +14,13 @@ class TradeService {
     required TradeDirection direction,
     required double amount,
   }) async {
-    final balance = await _bankService.getBalance(uid);
-    if (balance < amount) {
-      throw Exception('Insufficient balance');
-    }
-
     final coins = await _priceService.getTopCoins(perPage: 250);
     final coin = coins.firstWhere(
       (c) => c.id == coinId,
       orElse: () => throw Exception('Coin not found: $coinId'),
     );
 
-    await _bankService.adjustBalance(uid, -amount);
+    await _bankService.deductIfSufficient(uid, amount);
 
     final docRef = _db.collection('trades').doc();
     final trade = TradeModel(
@@ -43,7 +38,7 @@ class TradeService {
     await docRef.set(trade.toMap());
     return trade;
   }
-
+  
   Future<TradeModel> closeTrade({required String tradeId}) async {
     final doc = await _db.collection('trades').doc(tradeId).get();
     if (!doc.exists) throw Exception('Trade not found');
@@ -105,18 +100,13 @@ class TradeService {
     required int leverage,
     required Duration duration,
   }) async {
-    final balance = await _bankService.getBalance(uid);
-    if (balance < amount) {
-      throw Exception('Insufficient balance');
-    }
-
     final coins = await _priceService.getTopCoins(perPage: 250);
     final coin = coins.firstWhere(
       (c) => c.id == coinId,
       orElse: () => throw Exception('Coin not found: $coinId'),
     );
 
-    await _bankService.adjustBalance(uid, -amount);
+    await _bankService.deductIfSufficient(uid, amount);
 
     final docRef = _db.collection('trades').doc();
     final now = DateTime.now();
@@ -137,7 +127,6 @@ class TradeService {
     await docRef.set(trade.toMap());
     return trade;
   }
-
   Future<TradeModel> resolveFuturesIfExpired({required String tradeId}) async {
     final doc = await _db.collection('trades').doc(tradeId).get();
     if (!doc.exists) throw Exception('Trade not found');

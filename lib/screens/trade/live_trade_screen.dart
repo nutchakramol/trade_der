@@ -1,605 +1,343 @@
 import 'dart:async';
-
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-
-import '../../models/trade_model.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../services/auth_service.dart';
+import '../../services/bank_service.dart';
 import '../../services/price_service.dart';
 import '../../services/trade_service.dart';
-import '../../widgets/crypto888_ui.dart';
+import '../../models/trade_model.dart';
+import '../../models/crypto_model.dart';
 import '../penalty/camera_capture_screen.dart';
 
 class LiveTradeScreen extends StatefulWidget {
   final String coinId;
-
   const LiveTradeScreen({super.key, required this.coinId});
 
   @override
   State<LiveTradeScreen> createState() => _LiveTradeScreenState();
 }
 
+enum TradeMode { spot, futures }
+
 class _LiveTradeScreenState extends State<LiveTradeScreen> {
   final List<double> _priceHistory = [];
-  final TextEditingController _amountController = TextEditingController(
-    text: '50',
-  );
-
-  StreamSubscription<double>? _priceSubscription;
   double? _currentPrice;
-  double? _previousPrice;
-  bool _busy = false;
+  StreamSubscription<double>? _priceSub;
+  Timer? _futuresPollTimer;
   String _status = '';
+  bool _busy = false;
+
+  double _selectedAmount = 10.0;
+  TradeMode _mode = TradeMode.spot;
+  int _leverage = 5;
+  Duration _duration = const Duration(seconds: 30);
+
+  late String _coinId;
+  List<CryptoModel> _coins = [];
 
   String? get _uid => AuthService().currentUser?.uid;
 
   @override
   void initState() {
     super.initState();
-    _listenToPrice();
+    _coinId = widget.coinId;
+    _loadCoins();
+    _subscribeToPrice();
   }
 
-  void _listenToPrice() {
-    _priceSubscription = PriceService()
-        .watchPrice(widget.coinId)
-        .listen(
-          (price) {
-            if (!mounted) return;
-            setState(() {
-              _previousPrice = _currentPrice;
-              _currentPrice = price;
-              _priceHistory.add(price);
-              if (_priceHistory.length > 60) {
-                _priceHistory.removeAt(0);
-              }
-            });
-          },
-          onError: (_) {
-            if (mounted) {
-              setState(() => _status = 'Unable to receive live price updates.');
-            }
-          },
-        );
+  Future<void> _loadCoins() async {
+    try {
+      final coins = await PriceService().getTopCoins(perPage: 15);
+      setState(() => _coins = coins);
+    } catch (_) {
+      // non-fatal, coin picker just won't show options
+    }
+  }
+
+  void _subscribeToPrice() {
+    _priceSub?.cancel();
+    _priceHistory.clear();
+    _priceSub = PriceService().watchPrice(_coinId).listen((price) {
+      setState(() {
+        _currentPrice = price;
+        _priceHistory.add(price);
+        if (_priceHistory.length > 30) _priceHistory.removeAt(0);
+      });
+    });
   }
 
   @override
   void dispose() {
-    _priceSubscription?.cancel();
-    _amountController.dispose();
+    _priceSub?.cancel();
+    _futuresPollTimer?.cancel();
     super.dispose();
   }
 
-  double? _readAmount() {
-    final value = double.tryParse(_amountController.text.trim());
-    if (value == null || value <= 0) {
-      setState(() => _status = 'Enter a valid trade amount greater than \$0.');
-      return null;
-    }
-    return value;
-  }
-
-  Future<void> _openPosition(TradeDirection direction) async {
-    final uid = _uid;
-    final amount = _readAmount();
-    if (amount == null) return;
-
-    if (uid == null) {
-      setState(() => _status = 'Not signed in.');
-      return;
-    }
-
-    setState(() {
-      _busy = true;
-      _status = '';
-    });
-
+  Future<void> _openSpot(TradeDirection direction) async {
+    if (_uid == null) { setState(() => _status = 'Not signed in.'); return; }
+    setState(() { _busy = true; _status = ''; });
     try {
-      final trade = await TradeService().openSpotTrade(
-        uid: uid,
-        coinId: widget.coinId,
+      await TradeService().openSpotTrade(
+        uid: _uid!,
+        coinId: _coinId,
         direction: direction,
-        amount: amount,
+        amount: _selectedAmount,
       );
-
-      if (!mounted) return;
-      setState(() {
-        _status =
-            'Opened ${trade.direction.name.toUpperCase()} \$${trade.amount.toStringAsFixed(2)} @ \$${trade.entryPrice.toStringAsFixed(2)}';
-      });
+      setState(() => _status = '${direction == TradeDirection.long ? "Bought" : "Sold"} \$${_selectedAmount.toStringAsFixed(2)}');
     } catch (e) {
-      if (mounted) {
-        setState(() => _status = 'Unable to open position: $e');
-      }
+      setState(() => _status = 'ERROR: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _closePosition(String tradeId) async {
-    setState(() {
-      _busy = true;
-      _status = '';
-    });
+  Future<void> _openFutures(TradeDirection direction) async {
+    if (_uid == null) { setState(() => _status = 'Not signed in.'); return; }
+    setState(() { _busy = true; _status = ''; });
+    try {
+      final trade = await TradeService().openFuturesTrade(
+        uid: _uid!,
+        coinId: _coinId,
+        direction: direction,
+        amount: _selectedAmount,
+        leverage: _leverage,
+        duration: _duration,
+      );
+      setState(() => _status = 'Opened ${_leverage}x ${direction.name.toUpperCase()} \$${_selectedAmount.toStringAsFixed(2)}, resolves in ${_duration.inSeconds}s');
 
+      _futuresPollTimer?.cancel();
+      _futuresPollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _checkFuturesExpiry(trade.tradeId));
+    } catch (e) {
+      setState(() => _status = 'ERROR: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _checkFuturesExpiry(String tradeId) async {
+    try {
+      final resolved = await TradeService().resolveFuturesIfExpired(tradeId: tradeId);
+      if (resolved.status != TradeStatus.open) {
+        _futuresPollTimer?.cancel();
+        setState(() => _status = 'Resolved: ${resolved.status.name}, pnl: \$${resolved.pnl?.toStringAsFixed(2)}');
+        if (resolved.status == TradeStatus.closedLoss && mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CameraCaptureScreen(tradeId: resolved.tradeId, lossAmount: resolved.amount),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() => _status = 'ERROR checking expiry: $e');
+    }
+  }
+
+  Future<void> _closeSpotPosition(String tradeId) async {
+    setState(() => _busy = true);
     try {
       final closed = await TradeService().closeTrade(tradeId: tradeId);
-      if (!mounted) return;
-
-      setState(() {
-        _status =
-            'Closed ${closed.status.name}. P&L: \$${closed.pnl?.toStringAsFixed(2) ?? '0.00'}';
-      });
-
+      setState(() => _status = 'Closed: ${closed.status.name}, pnl: \$${closed.pnl?.toStringAsFixed(2)}');
       if (closed.status == TradeStatus.closedLoss && mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => CameraCaptureScreen(
-              tradeId: closed.tradeId,
-              lossAmount: closed.amount,
-            ),
+            builder: (_) => CameraCaptureScreen(tradeId: closed.tradeId, lossAmount: closed.amount),
           ),
         );
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _status = 'Unable to close position: $e');
-      }
+      setState(() => _status = 'ERROR: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   double _unrealizedPnl(TradeModel trade) {
-    final price = _currentPrice;
-    if (price == null || trade.entryPrice == 0) return 0;
-
-    final percentChange = (price - trade.entryPrice) / trade.entryPrice;
-    final direction = trade.direction == TradeDirection.long ? 1.0 : -1.0;
-    return trade.amount * percentChange * direction;
-  }
-
-  double get _priceChange {
-    final current = _currentPrice;
-    final previous = _previousPrice;
-    if (current == null || previous == null || previous == 0) return 0;
-    return ((current - previous) / previous) * 100;
+    if (_currentPrice == null) return 0.0;
+    final percentChange = (_currentPrice! - trade.entryPrice) / trade.entryPrice;
+    final directionMultiplier = trade.direction == TradeDirection.long ? 1 : -1;
+    final leverageMultiplier = trade.leverage ?? 1;
+    return trade.amount * percentChange * directionMultiplier * leverageMultiplier;
   }
 
   @override
   Widget build(BuildContext context) {
+    final uid = _uid;
     return Scaffold(
-      backgroundColor: C8.bg,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              C8Header(
-                title: 'Live Trading',
-                onBack: () => Navigator.pop(context),
-                action: const _LiveBadge(),
+      appBar: AppBar(title: Text('Live Trade: $_coinId')),
+      body: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Coin picker
+            if (_coins.isNotEmpty)
+              DropdownButton<String>(
+                value: _coinId,
+                isExpanded: true,
+                items: _coins.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _coinId = value);
+                  _subscribeToPrice();
+                },
               ),
-              const SizedBox(height: 16),
-              _buildMarketSummary(),
-              const SizedBox(height: 16),
-              Expanded(flex: 4, child: _buildChart()),
-              const SizedBox(height: 14),
-              _buildOrderControls(),
-              if (_status.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                C8Status(
-                  text: _status,
-                  success:
-                      _status.startsWith('Opened') ||
-                      _status.startsWith('Closed'),
-                ),
+            const SizedBox(height: 8),
+            Text(
+              _currentPrice == null ? 'Loading price...' : '\$${_currentPrice!.toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 160,
+              child: _priceHistory.length < 2
+                  ? const Center(child: Text('Waiting for price data...'))
+                  : LineChart(
+                      LineChartData(
+                        gridData: const FlGridData(show: false),
+                        titlesData: const FlTitlesData(show: false),
+                        borderData: FlBorderData(show: false),
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: [for (int i = 0; i < _priceHistory.length; i++) FlSpot(i.toDouble(), _priceHistory[i])],
+                            isCurved: true,
+                            dotData: const FlDotData(show: false),
+                            color: Colors.deepPurple,
+                            barWidth: 3,
+                          ),
+                        ],
+                      ),
+                      duration: const Duration(milliseconds: 800),
+                    ),
+            ),
+            const SizedBox(height: 8),
+
+            // Spot / Futures mode toggle
+            SegmentedButton<TradeMode>(
+              segments: const [
+                ButtonSegment(value: TradeMode.spot, label: Text('Spot')),
+                ButtonSegment(value: TradeMode.futures, label: Text('Futures')),
               ],
-              const SizedBox(height: 14),
-              const Text(
-                'Open Positions',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
+              selected: {_mode},
+              onSelectionChanged: (selection) => setState(() => _mode = selection.first),
+            ),
+            const SizedBox(height: 8),
+
+            // Amount slider (shared)
+            if (uid != null)
+              StreamBuilder<double>(
+                stream: BankService().watchBalance(uid),
+                builder: (context, snapshot) {
+                  final maxAmount = snapshot.data ?? 0.0;
+                  final safeMax = maxAmount > 0 ? maxAmount : 1.0;
+                  return Column(
+                    children: [
+                      Text('Amount: \$${_selectedAmount.toStringAsFixed(2)}'),
+                      Slider(
+                        value: _selectedAmount.clamp(0, safeMax),
+                        min: 0,
+                        max: safeMax,
+                        divisions: 20,
+                        label: '\$${_selectedAmount.toStringAsFixed(2)}',
+                        onChanged: (value) => setState(() => _selectedAmount = value),
+                      ),
+                    ],
+                  );
+                },
               ),
-              const SizedBox(height: 10),
-              Expanded(flex: 3, child: _buildPositions()),
-              const SizedBox(height: 10),
+
+            // Futures-only controls
+            if (_mode == TradeMode.futures) ...[
+              const Text('Leverage'),
+              Wrap(
+                spacing: 8,
+                children: [2, 5, 10].map((lev) => ChoiceChip(
+                  label: Text('${lev}x'),
+                  selected: _leverage == lev,
+                  onSelected: (_) => setState(() => _leverage = lev),
+                )).toList(),
+              ),
+              const SizedBox(height: 8),
+              const Text('Duration'),
+              Wrap(
+                spacing: 8,
+                children: const [
+                  Duration(seconds: 30),
+                  Duration(seconds: 60),
+                  Duration(minutes: 2),
+                ].map((d) => ChoiceChip(
+                  label: Text('${d.inSeconds}s'),
+                  selected: _duration == d,
+                  onSelected: (_) => setState(() => _duration = d),
+                )).toList(),
+              ),
+              const SizedBox(height: 8),
             ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildMarketSummary() {
-    final change = _priceChange;
-    final rising = change >= 0;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${widget.coinId.toUpperCase()} / USD',
-                style: const TextStyle(
-                  color: C8.muted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  _currentPrice == null
-                      ? 'Loading price…'
-                      : '\$${_currentPrice!.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 34,
-                    fontWeight: FontWeight.w800,
+            // Buy/Sell buttons
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _busy ? null : () => _mode == TradeMode.spot ? _openSpot(TradeDirection.long) : _openFutures(TradeDirection.long),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    child: const Text('Buy (Long)'),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          decoration: BoxDecoration(
-            color: (rising ? C8.green : C8.red).withValues(alpha: .10),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                rising
-                    ? Icons.arrow_drop_up_rounded
-                    : Icons.arrow_drop_down_rounded,
-                color: rising ? C8.green : C8.red,
-                size: 20,
-              ),
-              Text(
-                '${change.abs().toStringAsFixed(3)}%',
-                style: TextStyle(
-                  color: rising ? C8.green : C8.red,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _busy ? null : () => _mode == TradeMode.spot ? _openSpot(TradeDirection.short) : _openFutures(TradeDirection.short),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    child: const Text('Sell (Short)'),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildChart() {
-    if (_priceHistory.length < 2) {
-      return Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: C8.card,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: C8.border),
-        ),
-        child: const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: C8.lime),
-              SizedBox(height: 12),
-              Text(
-                'Waiting for live market ticks…',
-                style: TextStyle(color: C8.muted),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    var minPrice = _priceHistory.first;
-    var maxPrice = _priceHistory.first;
-    for (final price in _priceHistory) {
-      if (price < minPrice) minPrice = price;
-      if (price > maxPrice) maxPrice = price;
-    }
-
-    var range = maxPrice - minPrice;
-    if (range == 0) range = maxPrice.abs() * .002;
-    if (range == 0) range = 1;
-
-    final chartMin = minPrice - range * .18;
-    final chartMax = maxPrice + range * .18;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(10, 18, 12, 8),
-      decoration: BoxDecoration(
-        color: C8.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: C8.border),
-        boxShadow: [
-          BoxShadow(
-            color: C8.lime.withValues(alpha: .04),
-            blurRadius: 28,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-      child: LineChart(
-        LineChartData(
-          minY: chartMin,
-          maxY: chartMax,
-          gridData: FlGridData(
-            show: true,
-            drawVerticalLine: true,
-            horizontalInterval: range / 4,
-            getDrawingHorizontalLine: (_) =>
-                FlLine(color: C8.border.withValues(alpha: .65), strokeWidth: 1),
-            getDrawingVerticalLine: (_) =>
-                FlLine(color: C8.border.withValues(alpha: .28), strokeWidth: 1),
-          ),
-          titlesData: const FlTitlesData(show: false),
-          borderData: FlBorderData(show: false),
-          lineTouchData: const LineTouchData(enabled: true),
-          lineBarsData: [
-            LineChartBarData(
-              spots: [
-                for (var i = 0; i < _priceHistory.length; i++)
-                  FlSpot(i.toDouble(), _priceHistory[i]),
               ],
-              isCurved: true,
-              curveSmoothness: .28,
-              dotData: const FlDotData(show: false),
-              color: C8.lime,
-              barWidth: 3,
-              belowBarData: BarAreaData(
-                show: true,
-                color: C8.lime.withValues(alpha: .08),
-              ),
+            ),
+            if (_status.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(_status, textAlign: TextAlign.center),
+            ],
+            const Divider(height: 20),
+            const Text('Open Positions', style: TextStyle(fontWeight: FontWeight.bold)),
+            Expanded(
+              child: uid == null
+                  ? const Text('Not signed in.')
+                  : StreamBuilder<List<TradeModel>>(
+                      stream: TradeService().watchUserTrades(uid),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) return const CircularProgressIndicator();
+                        final openTrades = snapshot.data!.where((t) => t.status == TradeStatus.open).toList();
+                        if (openTrades.isEmpty) return const Text('No open positions.');
+                        return ListView.builder(
+                          itemCount: openTrades.length,
+                          itemBuilder: (context, i) {
+                            final t = openTrades[i];
+                            final pnl = _unrealizedPnl(t);
+                            return Card(
+                              child: ListTile(
+                                title: Text('${t.type.name.toUpperCase()} ${t.direction.name.toUpperCase()} \$${t.amount} (${t.coinId})${t.leverage != null ? " ${t.leverage}x" : ""}'),
+                                subtitle: Text('Unrealized: \$${pnl.toStringAsFixed(2)}',
+                                    style: TextStyle(color: pnl >= 0 ? Colors.green : Colors.red)),
+                                trailing: t.type == TradeType.spot
+                                    ? ElevatedButton(
+                                        onPressed: _busy ? null : () => _closeSpotPosition(t.tradeId),
+                                        child: const Text('Close'),
+                                      )
+                                    : const Text('auto'),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),
-        duration: const Duration(milliseconds: 350),
       ),
-    );
-  }
-
-  Widget _buildOrderControls() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: C8.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: C8.border),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 92,
-            child: TextField(
-              controller: _amountController,
-              enabled: !_busy,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-              decoration: InputDecoration(
-                isDense: true,
-                prefixText: '\$ ',
-                prefixStyle: const TextStyle(
-                  color: C8.lime,
-                  fontWeight: FontWeight.w800,
-                ),
-                filled: true,
-                fillColor: C8.bg.withValues(alpha: .45),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 12,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: C8.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: C8.lime),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: SizedBox(
-              height: 44,
-              child: ElevatedButton(
-                onPressed: _busy
-                    ? null
-                    : () => _openPosition(TradeDirection.long),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: C8.green,
-                  foregroundColor: C8.bg,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'BUY',
-                  style: TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: SizedBox(
-              height: 44,
-              child: ElevatedButton(
-                onPressed: _busy
-                    ? null
-                    : () => _openPosition(TradeDirection.short),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: C8.red,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'SELL',
-                  style: TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPositions() {
-    final uid = _uid;
-    if (uid == null) {
-      return const Center(
-        child: Text('Not signed in.', style: TextStyle(color: C8.muted)),
-      );
-    }
-
-    return StreamBuilder<List<TradeModel>>(
-      stream: TradeService().watchUserTrades(uid),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return const Center(
-            child: Text(
-              'Unable to load positions.',
-              style: TextStyle(color: C8.red),
-            ),
-          );
-        }
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator(color: C8.lime));
-        }
-
-        final openTrades = snapshot.data!
-            .where(
-              (trade) =>
-                  trade.status == TradeStatus.open &&
-                  trade.coinId == widget.coinId,
-            )
-            .toList();
-
-        if (openTrades.isEmpty) {
-          return const Center(
-            child: Text(
-              'No open positions.',
-              style: TextStyle(color: C8.muted),
-            ),
-          );
-        }
-
-        return ListView.separated(
-          itemCount: openTrades.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final trade = openTrades[index];
-            final pnl = _unrealizedPnl(trade);
-            final positive = pnl >= 0;
-
-            return Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: C8.card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: C8.border),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: trade.direction == TradeDirection.long
-                          ? C8.green
-                          : C8.red,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${trade.direction.name.toUpperCase()} · \$${trade.amount.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Entry \$${trade.entryPrice.toStringAsFixed(2)}',
-                          style: const TextStyle(color: C8.muted, fontSize: 12),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          '${positive ? '+' : ''}\$${pnl.toStringAsFixed(2)} unrealized',
-                          style: TextStyle(
-                            color: positive ? C8.green : C8.red,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  OutlinedButton(
-                    onPressed: _busy
-                        ? null
-                        : () => _closePosition(trade.tradeId),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: C8.lime,
-                      side: const BorderSide(color: C8.lime),
-                    ),
-                    child: const Text('Close'),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-class _LiveBadge extends StatelessWidget {
-  const _LiveBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: C8.green.withValues(alpha: .10),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: C8.green.withValues(alpha: .45)),
-      ),
-      child: const Icon(Icons.graphic_eq_rounded, color: C8.green, size: 20),
     );
   }
 }
