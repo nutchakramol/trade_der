@@ -1,7 +1,12 @@
 /// SHARED CONTRACT - agree on this together on Day 1.
 /// Firestore collection: "trades/{tradeId}"
 enum TradeType { spot, futures }
-enum TradeDirection { long, short } // long = buy/bet price goes up, short = bet down
+
+enum TradeDirection {
+  long,
+  short,
+} // long = buy/bet price goes up, short = bet down
+
 enum TradeStatus { open, closedWin, closedLoss }
 
 class TradeModel {
@@ -46,7 +51,9 @@ class TradeModel {
       amount: (map['amount'] as num).toDouble(),
       leverage: map['leverage'] as int?,
       openedAt: DateTime.parse(map['openedAt']),
-      expiresAt: map['expiresAt'] != null ? DateTime.parse(map['expiresAt']) : null,
+      expiresAt: map['expiresAt'] != null
+          ? DateTime.parse(map['expiresAt'])
+          : null,
       status: TradeStatus.values.byName(map['status']),
       closePrice: (map['closePrice'] as num?)?.toDouble(),
       pnl: (map['pnl'] as num?)?.toDouble(),

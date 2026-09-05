@@ -162,7 +162,8 @@ class TradeService {
     final percentChange = priceDiff / trade.entryPrice;
     final directionMultiplier = trade.direction == TradeDirection.long ? 1 : -1;
     final leverageMultiplier = trade.leverage ?? 1;
-    final pnl = trade.amount * percentChange * directionMultiplier * leverageMultiplier;
+    final pnl =
+        trade.amount * percentChange * directionMultiplier * leverageMultiplier;
 
     final isWin = pnl >= 0;
     final newStatus = isWin ? TradeStatus.closedWin : TradeStatus.closedLoss;
@@ -200,8 +201,10 @@ class TradeService {
         .collection('trades')
         .where('uid', isEqualTo: uid)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => TradeModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => TradeModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
   }
 }

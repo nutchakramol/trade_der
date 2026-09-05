@@ -6,8 +6,11 @@ class BankService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Stream<double> watchBalance(String uid) {
-    return _db.collection('users').doc(uid).snapshots().map(
-        (doc) => (doc.data()?['bankBalance'] as num?)?.toDouble() ?? 0.0);
+    return _db
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .map((doc) => (doc.data()?['bankBalance'] as num?)?.toDouble() ?? 0.0);
   }
 
   Future<double> getBalance(String uid) async {
@@ -19,7 +22,8 @@ class BankService {
     final ref = _db.collection('users').doc(uid);
     await _db.runTransaction((transaction) async {
       final snapshot = await transaction.get(ref);
-      final current = (snapshot.data()?['bankBalance'] as num?)?.toDouble() ?? 0.0;
+      final current =
+          (snapshot.data()?['bankBalance'] as num?)?.toDouble() ?? 0.0;
       transaction.update(ref, {'bankBalance': current + delta});
     });
   }

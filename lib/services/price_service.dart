@@ -22,7 +22,9 @@ class PriceService {
     final controller = StreamController<double>();
 
     Future<void> fetchOnce() async {
-      final uri = Uri.parse('$baseUrl/simple/price?ids=$coinId&vs_currencies=usd');
+      final uri = Uri.parse(
+        '$baseUrl/simple/price?ids=$coinId&vs_currencies=usd',
+      );
       final response = await http.get(uri);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -32,7 +34,10 @@ class PriceService {
     }
 
     fetchOnce();
-    final timer = Timer.periodic(const Duration(seconds: 15), (_) => fetchOnce());
+    final timer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => fetchOnce(),
+    );
     controller.onCancel = () => timer.cancel();
     return controller.stream;
   }
